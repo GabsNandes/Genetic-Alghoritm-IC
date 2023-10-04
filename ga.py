@@ -1,6 +1,7 @@
 from random import randint
 import math
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 class AlgoritimoGenetico():
 
@@ -45,7 +46,7 @@ class AlgoritimoGenetico():
 
             for bit in num_bin:
                 individuo.append(bit)
-            print(individuo)
+            
 
                 
 
@@ -59,21 +60,13 @@ class AlgoritimoGenetico():
         numx=num_bin[:f]
         numy =num_bin[f+1:]
         
-        
-        
-        print(len(num_bin))
-        
-        
-        print(numx)
-        print(numy)
-        
-        
-        
         numx = int(''.join(numx), 2)
         numy = int(''.join(numy), 2)
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
         return obj
+    
+    
     
     def avaliar(self):
         """
@@ -176,32 +169,54 @@ class AlgoritimoGenetico():
 
 
 def main():
-    algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 100, 0.008, 0.65, 40)
-
-    algoritmo_genetico.avaliar()
+    y = []
     # executa o algoritmo por "num_gerações"
-    for i in range(algoritmo_genetico.num_geracoes):
-        # imprime o resultado a cada geração, começando da população original
-        print( 'Resultado {}: {}'.format(i, algoritmo_genetico.econtrar_filho_mais_apto()) )
-        # cria uma nova população e a preenche enquanto não estiver completa
-        nova_populacao = []
-        while len(nova_populacao) < algoritmo_genetico.tam_populacao:
-            # seleciona os pais
-            pai = algoritmo_genetico.selecionar()
-            mae = algoritmo_genetico.selecionar()
-            # realiza o crossover dos pais para gerar os filhos
-            filho_1, filho_2 = algoritmo_genetico.crossover(pai, mae)
-            # realiza a mutação dos filhos e os adiciona à nova população
-            algoritmo_genetico.mutar(filho_1)
-            algoritmo_genetico.mutar(filho_2)
-            nova_populacao.append(filho_1)
-            nova_populacao.append(filho_2)
-        # substitui a população antiga pela nova e realiza sua avaliação
-        algoritmo_genetico.populacao = nova_populacao
+    
+    for ex in range(20):
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 100, 0.008, 0.65, 40)
+        somaaptos = 0
         algoritmo_genetico.avaliar()
+        for i in range(algoritmo_genetico.num_geracoes):
+            # imprime o resultado a cada geração, começando da população original
+            filhoapto = algoritmo_genetico.econtrar_filho_mais_apto()
+            somaaptos = somaaptos + filhoapto[1]
+            print( 'Resultado {}: {}'.format(i, filhoapto ))
+            # cria uma nova população e a preenche enquanto não estiver completa
+            nova_populacao = []
+            while len(nova_populacao) < algoritmo_genetico.tam_populacao:
+                # seleciona os pais
+                pai = algoritmo_genetico.selecionar()
+                mae = algoritmo_genetico.selecionar()
+                # realiza o crossover dos pais para gerar os filhos
+                filho_1, filho_2 = algoritmo_genetico.crossover(pai, mae)
+                # realiza a mutação dos filhos e os adiciona à nova população
+                algoritmo_genetico.mutar(filho_1)
+                algoritmo_genetico.mutar(filho_2)
+                nova_populacao.append(filho_1)
+                nova_populacao.append(filho_2)
+            # substitui a população antiga pela nova e realiza sua avaliação
+            algoritmo_genetico.populacao = nova_populacao
+            algoritmo_genetico.avaliar()
 
-    # procura o filho mais apto dentro da população e exibe o resultado do algoritmo genético
-    print( 'Resultado {}: {}'.format(i+1, algoritmo_genetico.econtrar_filho_mais_apto()) )
+        
+
+        # procura o filho mais apto dentro da população e exibe o resultado do algoritmo genético
+        mediaaptos = somaaptos/(i+1)
+        filhoapto = algoritmo_genetico.econtrar_filho_mais_apto()
+        print( 'Resultado {}: {}'.format(i+1, filhoapto) )
+        print('Média experimento: ', mediaaptos)
+        y.append(mediaaptos)
+
+    fig, ax = plt.subplots()
+
+    ax.stairs(y, linewidth=2.5)
+
+    ax.set(xlim=(0, 20), xticks=np.arange(0, 20),
+       ylim=(0, 1), yticks=np.arange(0, 1.5))
+
+    plt.savefig('Médias.png', format='png')
+    plt.show()    
+    
 
     # encerra a execução da função main
     return 0
