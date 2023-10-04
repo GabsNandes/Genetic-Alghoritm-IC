@@ -66,6 +66,25 @@ class AlgoritimoGenetico():
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
         return obj
     
+    def widowing(self, num_bin):
+        """
+            Calcula a função objetivo utilizada para avlaiar as soluções produzidas
+        """
+        
+        # converte o número binário para o formato inteiro
+        f = num_bin.index('#')
+        numx=num_bin[:f]
+        numy =num_bin[f+1:]
+        const = 0.08
+        numx = int(''.join(numx), 2)
+        numy = int(''.join(numy), 2)
+        # calcula e retorna o resultado da função objetivo
+        obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
+        return obj-const
+    
+
+
+    
     
     
     def avaliar(self):
