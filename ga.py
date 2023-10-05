@@ -5,11 +5,13 @@ import numpy as np
 
 class AlgoritimoGenetico():
 
-    def __init__(self, x_min, x_max, y_min, y_max, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes):
+    def __init__(self, x_min, x_max, y_min, y_max, precisao, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes):
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min
         self.y_max = y_max
+
+        self.precisao = precisao
 
         self.tam_populacao = tam_populacao
         self.taxa_mutacao = taxa_mutacao
@@ -29,6 +31,15 @@ class AlgoritimoGenetico():
 
         # gera os individuos da população
         self.gerarpopulacao()
+    
+    def listtostring(self, s):
+        string = ""
+
+        for e in s:
+            string+=e
+        
+        return string
+
 
     def gerarpopulacao(self):
         self.populacao = [[] for i in range(self.tam_populacao)]
@@ -43,9 +54,10 @@ class AlgoritimoGenetico():
             str(num_bin_y)
 
             num_bin = num_bin_x+ "#" + num_bin_y
-
+            
             for bit in num_bin:
                 individuo.append(bit)
+
             
 
                 
@@ -117,23 +129,23 @@ class AlgoritimoGenetico():
 
         if int(''.join(numx), 2) < self.x_min:
             # se o individuo é menor que o limite mínimo, ele é substituido pelo próprio limite mínimo
-            ajuste = bin(self.x_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits)
+            ajuste = bin(self.x_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits_x)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
         elif int(''.join(numx), 2) > self.x_max:
             # se o individuo é maior que o limite máximo, ele é substituido pelo próprio limite máximo
-            ajuste = bin(self.x_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits)
+            ajuste = bin(self.x_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits_x)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
 
         if int(''.join(numy), 2) < self.y_min:
             # se o individuo é menor que o limite mínimo, ele é substituido pelo próprio limite mínimo
-            ajuste = bin(self.y_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits)
+            ajuste = bin(self.y_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits_y)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
         elif int(''.join(numy), 2) > self.y_max:
             # se o individuo é maior que o limite máximo, ele é substituido pelo próprio limite máximo
-            ajuste = bin(self.y_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits)
+            ajuste = bin(self.y_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits_y)
             for indice, bit in enumerate(ajuste):
                 numy[indice] = bit
 
@@ -141,13 +153,45 @@ class AlgoritimoGenetico():
         """
             Aplica o crossover de acordo com uma dada probabilidade (taxa de crossover)
         """
-        if randint(1,100) <= self.taxa_crossover:
+        f = pai.index('#')
+        paix=pai[:f]
+        paiy =pai[f+1:]
+
+        f = mae.index('#')
+        maex=mae[:f]
+        maey =mae[f+1:]
+
+        if randint(0,1) <= self.taxa_crossover:
             # caso o crossover seja aplicado os pais trocam suas caldas e com isso geram dois filhos
-            ponto_de_corte = randint(1, self.num_bits - 1)
-            filho_1 = pai[:ponto_de_corte] + mae[ponto_de_corte:]
-            filho_2 = mae[:ponto_de_corte] + pai[ponto_de_corte:]
+            ponto_de_corte = randint(1, len(paix) - 1)
+
+            filho_1x = paix[:ponto_de_corte] + maex[ponto_de_corte:]
+            filho_1x = self.listtostring(filho_1x)
+
+            filho_2x = maex[:ponto_de_corte] + paix[ponto_de_corte:]
+            filho_2x = self.listtostring(filho_2x)
+
+
+            filho_1y = paiy[:ponto_de_corte] + maey[ponto_de_corte:]
+            filho_1y = self.listtostring(filho_1y)
+
+            filho_2y = maey[:ponto_de_corte] + paiy[ponto_de_corte:]
+            filho_2y = self.listtostring(filho_2y)
             # se algum dos filhos estiver fora dos limites de x, ele é ajustado de acordo com o limite
             # mais próximo
+            
+            filho_1_A = filho_1x+ "#" + filho_1y
+            filho_1 = []
+            
+            filho_2_A = filho_2x+ "#" + filho_2y
+            filho_2 = []
+
+            for bit in filho_1_A:
+                filho_1.append(bit)
+
+            for bit in filho_2_A:
+                filho_2.append(bit)
+
             self._ajustar(filho_1)
             self._ajustar(filho_2)    
         else:
@@ -166,10 +210,15 @@ class AlgoritimoGenetico():
         # cria a tabela com as regras de mutação
         tabela_mutacao = str.maketrans('+-01', '-+10')
         # caso a taxa de mutação seja atingida, ela é realizada em um bit aleatório
-        if randint(1,100) <= self.taxa_mutacao:
-            bit = randint(0, self.num_bits - 1)
+        for bit in range(len(individuo)):
+            if randint(1,10000)/10000 <= self.taxa_mutacao and (individuo[bit]==1 or individuo[bit]==0):
+                individuo[bit] = randint(0,1)
+            
+        
+            '''bit = randint(0, self.num_bits - 1)
             individuo[bit] = individuo[bit].translate(tabela_mutacao)
-
+        
+        '''
         # se o individuo estiver fora dos limites de x, ele é ajustado de acordo com o
         # limite mais próximo
         self._ajustar(individuo)
@@ -192,7 +241,7 @@ def main():
     # executa o algoritmo por "num_gerações"
     
     for ex in range(20):
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 100, 0.008, 0.65, 40)
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 4, 100, 0.008, 0.65, 40)
         somaaptos = 0
         algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
@@ -231,7 +280,7 @@ def main():
     ax.stairs(y, linewidth=2.5)
 
     ax.set(xlim=(0, 20), xticks=np.arange(0, 20),
-       ylim=(0, 1), yticks=np.arange(0, 1.5))
+       ylim=(0.9, 1), yticks=np.arange(0.9, 1.5))
 
     plt.savefig('Médias.png', format='png')
     plt.show()    
