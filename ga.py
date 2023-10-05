@@ -163,7 +163,7 @@ class AlgoritimoGenetico():
 
         if randint(0,1) <= self.taxa_crossover:
             # caso o crossover seja aplicado os pais trocam suas caldas e com isso geram dois filhos
-            ponto_de_corte = randint(1, len(paix) - 1)
+            ponto_de_corte = randint(1, len(paix) - 1)#todos nem o mesmo lenght, escolhi paix por conveniencia
 
             filho_1x = paix[:ponto_de_corte] + maex[ponto_de_corte:]
             filho_1x = self.listtostring(filho_1x)
@@ -241,6 +241,7 @@ def main():
     # executa o algoritmo por "num_gerações"
     
     for ex in range(20):
+        print("Experimento número: ", ex+1)
         algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 4, 100, 0.008, 0.65, 40)
         somaaptos = 0
         algoritmo_genetico.avaliar()
@@ -274,6 +275,7 @@ def main():
         print( 'Resultado {}: {}'.format(i+1, filhoapto) )
         print('Média experimento: ', mediaaptos)
         y.append(mediaaptos)
+        print("################################################")
 
     fig, ax = plt.subplots()
 
