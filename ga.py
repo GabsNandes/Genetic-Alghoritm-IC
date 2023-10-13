@@ -6,13 +6,13 @@ import numpy as np
 
 class AlgoritimoGenetico():
 
-    def __init__(self, x_min, x_max, y_min, y_max,precisao, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes, elitismo, fitnessKind, steadyStateOn, duplicate):
+    def __init__(self, x_min, x_max, y_min, y_max,total_bits, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes, elitismo, fitnessKind, steadyStateOn, duplicate):
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min
         self.y_max = y_max
 
-        self.precisao = precisao
+        self.total_bits = total_bits
 
         self.tam_populacao = tam_populacao
         self.taxa_mutacao = taxa_mutacao
@@ -27,16 +27,12 @@ class AlgoritimoGenetico():
         self.duplicate = duplicate
 
         # calcula o número de bits do x_min e x_máx no formato binário com sinal
-        qtd_bits_x_min = len(bin(x_min*(10**precisao)).replace('0b', '' if x_min < 0 else '+'))
-        qtd_bits_x_max = len(bin(x_max*(10**precisao)).replace('0b', '' if x_max < 0 else '+'))
-
-        qtd_bits_y_min = len(bin(y_min*(10**precisao)).replace('0b', '' if x_min < 0 else '+'))
-        qtd_bits_y_max = len(bin(y_max*(10**precisao)).replace('0b', '' if x_max < 0 else '+'))
+        
 
 
         # o maior número de bits representa o número de bits a ser utilizado para gerar individuos
-        self.num_bits_x = qtd_bits_x_max if qtd_bits_x_max >= qtd_bits_x_min else qtd_bits_x_min
-        self.num_bits_y = qtd_bits_y_max if qtd_bits_y_max >= qtd_bits_y_min else qtd_bits_y_min
+        self.num_bits_x = total_bits
+        self.num_bits_y = total_bits
         self.num_bits = self.num_bits_x #+ self.num_bits_y
 
         # gera os individuos da população
@@ -105,8 +101,18 @@ class AlgoritimoGenetico():
         numx=num_bin[:f]
         numy =num_bin[f+1:]
         
-        numx = int(''.join(numx), 2) / (10**self.precisao)
-        numy = int(''.join(numy), 2) / (10**self.precisao)
+        numx = int(''.join(numx), 2) 
+        numy = int(''.join(numy), 2) 
+        
+        
+        numx = numx*(200/((2**self.total_bits)-1))
+        numy = numy*(200/((2**self.total_bits)-1))
+        
+
+        numx = numx+self.x_min
+        numy = numy+self.y_min
+
+        
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
         '''if obj > 0.999:
@@ -125,8 +131,17 @@ class AlgoritimoGenetico():
 
         const = 0.08
 
-        numx = int(''.join(numx), 2) /(10**self.precisao)
-        numy = int(''.join(numy), 2) /(10**self.precisao)
+        numx = int(''.join(numx), 2) 
+        numy = int(''.join(numy), 2) 
+
+        
+        numx = numx*(200/((2**self.total_bits)-1))
+        numy = numy*(200/((2**self.total_bits)-1))
+        
+
+        numx = numx+self.x_min
+        
+        numy = numy+self.y_min
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
         
@@ -367,7 +382,7 @@ def main():
     for ex in range(20):
         #Os valores booleanos se referem, em ordem a: Elitismo, Steady State e permitir duplicados no Steady State
         #Pode-se trocar o metodo de aptidao, os disponiveis são 'avaliacao','windowing' e 'normalizar'
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 4, 100, 0.008, 0.65, 40, True , 'normalizar', True , False)
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 22, 100, 0.008, 0.65, 40, True , 'avaliacao', True , False)
 
         #algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
