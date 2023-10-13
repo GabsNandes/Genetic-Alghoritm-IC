@@ -1,11 +1,12 @@
-from random import randint
+from pickle import FALSE
+from random import randint, choices
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 
 class AlgoritimoGenetico():
 
-    def __init__(self, x_min, x_max, y_min, y_max, precisao, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes):
+    def __init__(self, x_min, x_max, y_min, y_max,precisao, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes, elitismo, fitnessKind, steadyStateOn, duplicate):
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min
@@ -17,36 +18,36 @@ class AlgoritimoGenetico():
         self.taxa_mutacao = taxa_mutacao
         self.taxa_crossover = taxa_crossover
         self.num_geracoes = num_geracoes
-        # calcula o número de bits do x_min e x_máx no formato binário com sinal
-        qtd_bits_x_min = len(bin(x_min).replace('0b', '' if x_min < 0 else '+'))
-        qtd_bits_x_max = len(bin(x_max).replace('0b', '' if x_max < 0 else '+'))
 
-        qtd_bits_y_min = len(bin(y_min).replace('0b', '' if x_min < 0 else '+'))
-        qtd_bits_y_max = len(bin(y_max).replace('0b', '' if x_max < 0 else '+'))
+        self.elitismo = elitismo
+
+        self.fitnessKind = fitnessKind
+
+        self.steadyStateOn = steadyStateOn
+        self.duplicate = duplicate
+
+        # calcula o número de bits do x_min e x_máx no formato binário com sinal
+        qtd_bits_x_min = len(bin(x_min*(10**precisao)).replace('0b', '' if x_min < 0 else '+'))
+        qtd_bits_x_max = len(bin(x_max*(10**precisao)).replace('0b', '' if x_max < 0 else '+'))
+
+        qtd_bits_y_min = len(bin(y_min*(10**precisao)).replace('0b', '' if x_min < 0 else '+'))
+        qtd_bits_y_max = len(bin(y_max*(10**precisao)).replace('0b', '' if x_max < 0 else '+'))
 
 
         # o maior número de bits representa o número de bits a ser utilizado para gerar individuos
         self.num_bits_x = qtd_bits_x_max if qtd_bits_x_max >= qtd_bits_x_min else qtd_bits_x_min
         self.num_bits_y = qtd_bits_y_max if qtd_bits_y_max >= qtd_bits_y_min else qtd_bits_y_min
+        self.num_bits = self.num_bits_x #+ self.num_bits_y
 
         # gera os individuos da população
         self.gerarpopulacao()
-    
-    def listtostring(self, s):
-        string = ""
-
-        for e in s:
-            string+=e
-        
-        return string
-
 
     def gerarpopulacao(self):
         self.populacao = [[] for i in range(self.tam_populacao)]
 
         for individuo in self.populacao:
-            num_x = randint(self.x_min,self.x_max)
-            num_y = randint(self.y_min,self.y_max)
+            num_x = randint(self.x_min*(10**self.precisao),self.x_max*(10**self.precisao))
+            num_y = randint(self.y_min*(10**self.precisao),self.y_max*(10**self.precisao))
             # converte o número sorteado para formato binário com sinal
             num_bin_x = bin(num_x).replace('0b', '' if num_x < 0 else '+').zfill(self.num_bits_x)
             str(num_bin_x)
@@ -54,10 +55,9 @@ class AlgoritimoGenetico():
             str(num_bin_y)
 
             num_bin = num_bin_x+ "#" + num_bin_y
-            
+
             for bit in num_bin:
                 individuo.append(bit)
-
             
 
                 
@@ -72,13 +72,15 @@ class AlgoritimoGenetico():
         numx=num_bin[:f]
         numy =num_bin[f+1:]
         
-        numx = int(''.join(numx), 2)
-        numy = int(''.join(numy), 2)
+        numx = int(''.join(numx), 2) / (10**self.precisao)
+        numy = int(''.join(numy), 2) / (10**self.precisao)
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
+        '''if obj > 0.999:
+            print('numx:',numx,'numy:',numy)'''
         return obj
     
-    def widowing(self, num_bin):
+    def windowing(self, num_bin):
         """
             Calcula a função objetivo utilizada para avlaiar as soluções produzidas
         """
@@ -87,16 +89,15 @@ class AlgoritimoGenetico():
         f = num_bin.index('#')
         numx=num_bin[:f]
         numy =num_bin[f+1:]
+
         const = 0.08
-        numx = int(''.join(numx), 2)
-        numy = int(''.join(numy), 2)
+
+        numx = int(''.join(numx), 2) /(10**self.precisao)
+        numy = int(''.join(numy), 2) /(10**self.precisao)
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
+        
         return obj-const
-    
-
-
-    
     
     
     def avaliar(self):
@@ -107,14 +108,61 @@ class AlgoritimoGenetico():
         for individuo in self.populacao:
             self.avaliacao.append(self._funcao_objetivo(individuo))
 
+    def avalOther(self):
+        """
+            Avalia as souluções produzidas, associando uma nota/avalição a cada elemento da população
+        """
+        self.avaliacao = []
+        for individuo in self.populacao:
+            self.avaliacao.append(self._funcao_objetivo(individuo))
+
+    def normalizacao_linear(self,min,max):
+
+
+        self.normalizar = []
+        
+        aval = zip(self.populacao, self.avaliacao)
+        sort_val = sorted(aval, key=lambda x: x[1])
+
+        for individual in range(len(sort_val)):
+            self.normalizar.append(min + ((max-min)/(self.tam_populacao-1)) * individual)
+        
+        indSort = [t[0] for t in sort_val]
+        return zip(indSort, self.normalizar)
+
+
+    def fitness(self):
+        if self.fitnessKind == 'avaliacao':
+            return zip(self.populacao, self.avaliacao)
+        elif self.fitnessKind == 'windowing':
+            self.windows = []
+            for individuo in self.populacao:
+                self.windows.append(self.windowing(individuo))
+            return zip(self.populacao, self.windows)
+        elif self.fitnessKind == 'normalizar':
+            return self.normalizacao_linear(1,100)
+
     def selecionar(self):
         """
             Realiza a seleção do individuo mais apto por torneio, considerando N = 2
         """
         # agrupa os individuos com suas avaliações para gerar os participantes do torneio
-        participantes_torneio = list(zip(self.populacao, self.avaliacao))
+        participantes_torneio = list(self.fitness())
         # escolhe dois individuos aleatoriamente
+
+
+        apt = [t[1] for t in participantes_torneio]
+
+        avalNine = [(countNines(av)) +1 for av in apt]
+
+        #selected = choices(participantes_torneio, weights=avalNine, k=1)
+        selected = choices(participantes_torneio, weights=apt, k=1)
+
+        
+        
+        return selected[0][0]
         individuo_1 = participantes_torneio[randint(0, self.tam_populacao - 1)]
+
         individuo_2 = participantes_torneio[randint(0, self.tam_populacao - 1)]
         # retorna individuo com a maior avaliação, ou seja, o vencedor do torneio
         return individuo_1[0] if individuo_1[1] >= individuo_2[1] else individuo_2[0]
@@ -123,75 +171,47 @@ class AlgoritimoGenetico():
         """
             Caso o individuo esteja fora dos limites de x, ele é ajustado de acordo com o limite mais próximo
         """
+
+        
         f = individuo.index('#')
         numx=individuo[:f]
         numy =individuo[f+1:]
 
+
         if int(''.join(numx), 2) < self.x_min:
             # se o individuo é menor que o limite mínimo, ele é substituido pelo próprio limite mínimo
-            ajuste = bin(self.x_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits_x)
+            ajuste = bin(self.x_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
         elif int(''.join(numx), 2) > self.x_max:
             # se o individuo é maior que o limite máximo, ele é substituido pelo próprio limite máximo
-            ajuste = bin(self.x_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits_x)
+            ajuste = bin(self.x_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
 
         if int(''.join(numy), 2) < self.y_min:
             # se o individuo é menor que o limite mínimo, ele é substituido pelo próprio limite mínimo
-            ajuste = bin(self.y_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits_y)
+            ajuste = bin(self.y_min).replace('0b', '' if self.x_min < 0 else '+').zfill(self.num_bits)
             for indice, bit in enumerate(ajuste):
                 numx[indice] = bit
         elif int(''.join(numy), 2) > self.y_max:
             # se o individuo é maior que o limite máximo, ele é substituido pelo próprio limite máximo
-            ajuste = bin(self.y_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits_y)
+            ajuste = bin(self.y_max).replace('0b', '' if self.x_max < 0 else '+').zfill(self.num_bits)
             for indice, bit in enumerate(ajuste):
                 numy[indice] = bit
+
 
     def crossover(self, pai, mae):
         """
             Aplica o crossover de acordo com uma dada probabilidade (taxa de crossover)
         """
-        f = pai.index('#')
-        paix=pai[:f]
-        paiy =pai[f+1:]
-
-        f = mae.index('#')
-        maex=mae[:f]
-        maey =mae[f+1:]
-
-        if randint(0,1) <= self.taxa_crossover:
+        if randint(1,10000)/10000 <= self.taxa_crossover:
             # caso o crossover seja aplicado os pais trocam suas caldas e com isso geram dois filhos
-            ponto_de_corte = randint(1, len(paix) - 1)#todos nem o mesmo lenght, escolhi paix por conveniencia
-
-            filho_1x = paix[:ponto_de_corte] + maex[ponto_de_corte:]
-            filho_1x = self.listtostring(filho_1x)
-
-            filho_2x = maex[:ponto_de_corte] + paix[ponto_de_corte:]
-            filho_2x = self.listtostring(filho_2x)
-
-
-            filho_1y = paiy[:ponto_de_corte] + maey[ponto_de_corte:]
-            filho_1y = self.listtostring(filho_1y)
-
-            filho_2y = maey[:ponto_de_corte] + paiy[ponto_de_corte:]
-            filho_2y = self.listtostring(filho_2y)
+            ponto_de_corte = randint(1, len(pai)-1)
+            filho_1 = pai[:ponto_de_corte] + mae[ponto_de_corte:]
+            filho_2 = mae[:ponto_de_corte] + pai[ponto_de_corte:]
             # se algum dos filhos estiver fora dos limites de x, ele é ajustado de acordo com o limite
             # mais próximo
-            
-            filho_1_A = filho_1x+ "#" + filho_1y
-            filho_1 = []
-            
-            filho_2_A = filho_2x+ "#" + filho_2y
-            filho_2 = []
-
-            for bit in filho_1_A:
-                filho_1.append(bit)
-
-            for bit in filho_2_A:
-                filho_2.append(bit)
-
             self._ajustar(filho_1)
             self._ajustar(filho_2)    
         else:
@@ -208,50 +228,135 @@ class AlgoritimoGenetico():
             (taxa de mutação)
         """
         # cria a tabela com as regras de mutação
-        tabela_mutacao = str.maketrans('+-01', '-+10')
+        #tabela_mutacao = str.maketrans('+-01', '-+10')
         # caso a taxa de mutação seja atingida, ela é realizada em um bit aleatório
-        for bit in range(len(individuo)):
-            if randint(1,10000)/10000 <= self.taxa_mutacao and (individuo[bit]==1 or individuo[bit]==0):
-                individuo[bit] = randint(0,1)
-            
-        
-            '''bit = randint(0, self.num_bits - 1)
+        '''if randint(1,10000)/10000 <= self.taxa_mutacao:
+            bit = randint(0, self.num_bits - 1)
             individuo[bit] = individuo[bit].translate(tabela_mutacao)
-        
         '''
+
+        for bit in range(len(individuo)):
+            if randint(1,10000)/10000 <= self.taxa_mutacao and (individuo[bit] == '0' or individuo[bit] == '1'):
+                individuo[bit] = str(randint(0,1))
+
         # se o individuo estiver fora dos limites de x, ele é ajustado de acordo com o
         # limite mais próximo
         self._ajustar(individuo)
 
-    def econtrar_filho_mais_apto(self):
+    def encontrar_filho_mais_apto(self):
         """
             Busca o individuo com a melhor avaliação dentro da população
         """
         # agrupa os individuos com suas avaliações para gerar os candidatos
-        candidatos = zip(self.populacao, self.avaliacao)
+        candidatos = self.fitness()
         # retorna o candidato com a melhor avaliação, ou seja, o mais apto da população
-        return max(candidatos, key=lambda elemento: elemento[1])
+
+        mais_apto = max(candidatos, key=lambda elemento: elemento[1])
+
+        primo = (mais_apto[0],self._funcao_objetivo(mais_apto[0]))
+
+        return primo
+    
+
+def steadyState(algGen, gap):
+
+    values = list(algGen.fitness())
+
+    sorted_values_general = sorted(values, key=lambda x: x[1])
+
+    sorted_values = []
 
 
+    for i in sorted_values_general:
+        sorted_values.append(i[0])
 
+    newGen = []
+
+    while len(newGen) < gap:
+        pai = algGen.selecionar()
+        mae = algGen.selecionar()
+        filho_1, filho_2 = algGen.crossover(pai, mae)
+
+        algGen.mutar(filho_1)
+        algGen.mutar(filho_2)
+
+        newGen.append(filho_1)
+        if len(newGen) < gap:
+            newGen.append(filho_2)
+
+    sorted_values[:gap] = newGen
+
+
+    if algGen.duplicate == False:
+        noDupeValues = []
+
+        for v in sorted_values:
+            if v not in noDupeValues:
+                noDupeValues.append(v)
+        
+        while len(noDupeValues) < algGen.tam_populacao:
+            # seleciona os pais
+                pai = algGen.selecionar()
+                mae = algGen.selecionar()
+                # realiza o crossover dos pais para gerar os filhos
+                filho_1, filho_2 = algGen.crossover(pai, mae)
+                # realiza a mutação dos filhos e os adiciona à nova população
+                algGen.mutar(filho_1)
+                algGen.mutar(filho_2)
+                if filho_1 not in noDupeValues:
+                    noDupeValues.append(filho_1)
+
+                if len(noDupeValues) < algGen.tam_populacao and filho_2 not in noDupeValues:
+                    noDupeValues.append(filho_2)
+
+        sorted_values = noDupeValues
+
+    newValues = []
+    for f in sorted_values:
+        newValues.append(f)
+
+    return newValues
+
+
+def countNines(num):
+
+    num_str = str(num)
+
+    integ,decimal = num_str.split('.')
+
+    consecNine = 0
+
+    for number in decimal:
+        if number == '9':
+            consecNine += 1
+        else:
+            return consecNine
+    
+    return consecNine
 
 
 def main():
     y = []
     # executa o algoritmo por "num_gerações"
+
+    expRes = [[0 for c in range(20)] for r in range(40)]
     
     for ex in range(20):
-        print("Experimento número: ", ex+1)
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 4, 100, 0.008, 0.65, 40)
-        somaaptos = 0
-        algoritmo_genetico.avaliar()
+        #Os valores booleanos se referem, em ordem a: Elitismo, Steady State e permitir duplicados no Steady State
+        #Pode-se trocar o metodo de aptidao, os disponiveis são 'avaliacao','windowing' e 'normalizar'
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 0, 100, 0.008, 0.65, 40, True , 'windowing', True , False)
+
+        #algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
+            algoritmo_genetico.avaliar()
             # imprime o resultado a cada geração, começando da população original
-            filhoapto = algoritmo_genetico.econtrar_filho_mais_apto()
-            somaaptos = somaaptos + filhoapto[1]
-            print( 'Resultado {}: {}'.format(i, filhoapto ))
+            filhoapto = algoritmo_genetico.encontrar_filho_mais_apto()
+            print( 'Resultado {}: {}'.format(i, filhoapto))
+            expRes[i][ex] = filhoapto[1]
             # cria uma nova população e a preenche enquanto não estiver completa
             nova_populacao = []
+
+
             while len(nova_populacao) < algoritmo_genetico.tam_populacao:
                 # seleciona os pais
                 pai = algoritmo_genetico.selecionar()
@@ -262,29 +367,47 @@ def main():
                 algoritmo_genetico.mutar(filho_1)
                 algoritmo_genetico.mutar(filho_2)
                 nova_populacao.append(filho_1)
-                nova_populacao.append(filho_2)
+                if len(nova_populacao) < algoritmo_genetico.tam_populacao:
+                    nova_populacao.append(filho_2)
+
             # substitui a população antiga pela nova e realiza sua avaliação
+
             algoritmo_genetico.populacao = nova_populacao
             algoritmo_genetico.avaliar()
 
-        
+            if algoritmo_genetico.elitismo:
+                algoritmo_genetico.populacao[np.argmin(algoritmo_genetico.avaliacao)] = filhoapto[0]
 
-        # procura o filho mais apto dentro da população e exibe o resultado do algoritmo genético
-        mediaaptos = somaaptos/(i+1)
-        filhoapto = algoritmo_genetico.econtrar_filho_mais_apto()
-        print( 'Resultado {}: {}'.format(i+1, filhoapto) )
-        print('Média experimento: ', mediaaptos)
-        y.append(mediaaptos)
-        print("################################################")
+            #Para utilizar o steadyState, insira o algoritmo_genetico mais o numero de invidividuos a serem trocados
+            algoritmo_genetico.avaliar()
+            if algoritmo_genetico.steadyStateOn:
+                algoritmo_genetico.populacao = steadyState(algoritmo_genetico,35)
 
-    fig, ax = plt.subplots()
+            
 
-    ax.stairs(y, linewidth=2.5)
 
-    ax.set(xlim=(0, 20), xticks=np.arange(0, 20),
-       ylim=(0.9, 1), yticks=np.arange(0.9, 1.5))
+    expMeans = np.mean(expRes, axis=1)
 
-    plt.savefig('Médias.png', format='png')
+    expMeansNines = [countNines(i) for i in expMeans]
+
+    figA, axA = plt.subplots()
+
+    axA.plot(expMeans, color='red')
+
+    axA.set(xlim=(0, 40), xticks=np.arange(0, 40),
+       ylim=(0.9, 1))
+    
+    plt.savefig('Values.png', format='png')
+
+    figB, axB = plt.subplots()
+
+    axB.stairs(expMeansNines, linewidth=2.5)
+
+    axB.set(xlim=(0, 40), xticks=np.arange(0, 40),
+       ylim=(0, 4), yticks=np.arange(0, 4))
+
+    plt.savefig('Noves.png', format='png')
+
     plt.show()    
     
 
