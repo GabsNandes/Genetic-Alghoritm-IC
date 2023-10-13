@@ -41,20 +41,53 @@ class AlgoritimoGenetico():
 
         # gera os individuos da população
         self.gerarpopulacao()
+    
+    def listtostring(self, s):
+        string = ""
+
+        for e in s:
+            string+=e
+
+        return string
 
     def gerarpopulacao(self):
         self.populacao = [[] for i in range(self.tam_populacao)]
 
         for individuo in self.populacao:
-            num_x = randint(self.x_min*(10**self.precisao),self.x_max*(10**self.precisao))
-            num_y = randint(self.y_min*(10**self.precisao),self.y_max*(10**self.precisao))
-            # converte o número sorteado para formato binário com sinal
-            num_bin_x = bin(num_x).replace('0b', '' if num_x < 0 else '+').zfill(self.num_bits_x)
-            str(num_bin_x)
-            num_bin_y = bin(num_y).replace('0b', '' if num_y < 0 else '+').zfill(self.num_bits_y)
-            str(num_bin_y)
 
-            num_bin = num_bin_x+ "#" + num_bin_y
+            listx = []
+            listy = []
+
+            sinalx = (randint(0,1))
+            sinaly = (randint(0,1))
+
+            if sinalx == 0:
+                listx.append('-')
+            else:
+                listx.append('+')
+            
+            if sinaly == 0:
+                listy.append('-')
+            else:
+                listy.append('+')
+
+
+            for i in range(self.num_bits_x):
+                listx.append(str(randint(0,1)))
+            for e in range(self.num_bits_y):
+                listy.append(str(randint(0,1)))
+
+            num_x = listx
+            
+            num_y = listy
+            # converte o número sorteado para formato binário com sinal
+            
+            num_x = self.listtostring(num_x)
+            
+            num_y = self.listtostring(num_y)
+            
+
+            num_bin = num_x+ "#" + num_y
 
             for bit in num_bin:
                 individuo.append(bit)
@@ -151,16 +184,6 @@ class AlgoritimoGenetico():
         # escolhe dois individuos aleatoriamente
 
 
-        apt = [t[1] for t in participantes_torneio]
-
-        avalNine = [(countNines(av)) +1 for av in apt]
-
-        #selected = choices(participantes_torneio, weights=avalNine, k=1)
-        selected = choices(participantes_torneio, weights=apt, k=1)
-
-        
-        
-        return selected[0][0]
         individuo_1 = participantes_torneio[randint(0, self.tam_populacao - 1)]
 
         individuo_2 = participantes_torneio[randint(0, self.tam_populacao - 1)]
@@ -344,7 +367,7 @@ def main():
     for ex in range(20):
         #Os valores booleanos se referem, em ordem a: Elitismo, Steady State e permitir duplicados no Steady State
         #Pode-se trocar o metodo de aptidao, os disponiveis são 'avaliacao','windowing' e 'normalizar'
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 0, 100, 0.008, 0.65, 40, True , 'windowing', True , False)
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 4, 100, 0.008, 0.65, 40, True , 'normalizar', True , False)
 
         #algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
