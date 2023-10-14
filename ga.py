@@ -6,13 +6,13 @@ import numpy as np
 
 class AlgoritimoGenetico():
 
-    def __init__(self, x_min, x_max, y_min, y_max,total_bits, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes, elitismo, fitnessKind, steadyStateOn, duplicate):
+    def __init__(self, x_min, x_max, y_min, y_max,totalBits, tam_populacao, taxa_mutacao, taxa_crossover, num_geracoes, elitismo, fitnessKind, steadyStateOn, duplicate):
         self.x_min = x_min
         self.x_max = x_max
         self.y_min = y_min
         self.y_max = y_max
 
-        self.total_bits = total_bits
+        self.totalBits = totalBits
 
         self.tam_populacao = tam_populacao
         self.taxa_mutacao = taxa_mutacao
@@ -27,63 +27,33 @@ class AlgoritimoGenetico():
         self.duplicate = duplicate
 
         # calcula o número de bits do x_min e x_máx no formato binário com sinal
-        
+        print(self.totalBits/2)
+        qtd_bits_x_min = int(self.totalBits/2)
+        qtd_bits_x_max = int(self.totalBits/2)
+
+        qtd_bits_y_min = int(self.totalBits/2)
+        qtd_bits_y_max = int(self.totalBits/2)
 
 
         # o maior número de bits representa o número de bits a ser utilizado para gerar individuos
-        self.num_bits_x = total_bits
-        self.num_bits_y = total_bits
+        self.num_bits_x = qtd_bits_x_max if qtd_bits_x_max >= qtd_bits_x_min else qtd_bits_x_min
+        self.num_bits_y = qtd_bits_y_max if qtd_bits_y_max >= qtd_bits_y_min else qtd_bits_y_min
         self.num_bits = self.num_bits_x #+ self.num_bits_y
+
+        print('X:',self.num_bits_x,'Y:',self.num_bits_y)
 
         # gera os individuos da população
         self.gerarpopulacao()
-    
-    def listtostring(self, s):
-        string = ""
-
-        for e in s:
-            string+=e
-
-        return string
 
     def gerarpopulacao(self):
         self.populacao = [[] for i in range(self.tam_populacao)]
 
         for individuo in self.populacao:
+            num_bin_x = ''.join(str(randint(0, 1)) for _ in range(int(self.totalBits/2)))
 
-            listx = []
-            listy = []
+            num_bin_y = ''.join(str(randint(0, 1)) for _ in range(int(self.totalBits/2)))
 
-            sinalx = (randint(0,1))
-            sinaly = (randint(0,1))
-
-            if sinalx == 0:
-                listx.append('-')
-            else:
-                listx.append('+')
-            
-            if sinaly == 0:
-                listy.append('-')
-            else:
-                listy.append('+')
-
-
-            for i in range(self.num_bits_x):
-                listx.append(str(randint(0,1)))
-            for e in range(self.num_bits_y):
-                listy.append(str(randint(0,1)))
-
-            num_x = listx
-            
-            num_y = listy
-            # converte o número sorteado para formato binário com sinal
-            
-            num_x = self.listtostring(num_x)
-            
-            num_y = self.listtostring(num_y)
-            
-
-            num_bin = num_x+ "#" + num_y
+            num_bin = num_bin_x+ "#" + num_bin_y
 
             for bit in num_bin:
                 individuo.append(bit)
@@ -100,23 +70,13 @@ class AlgoritimoGenetico():
         f = num_bin.index('#')
         numx=num_bin[:f]
         numy =num_bin[f+1:]
-        
-        numx = int(''.join(numx), 2) 
-        numy = int(''.join(numy), 2) 
-        
-        
-        numx = numx*(200/((2**self.total_bits)-1))
-        numy = numy*(200/((2**self.total_bits)-1))
-        
 
-        numx = numx+self.x_min
-        numy = numy+self.y_min
+        numx =  (int(''.join(numx), 2) * ((200/(2**22-1)))) - self.x_max
+        numy = (int(''.join(numy), 2) * ((200/(2**22-1)))) - self.y_max
 
-        
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
-        '''if obj > 0.999:
-            print('numx:',numx,'numy:',numy)'''
+        
         return obj
     
     def windowing(self, num_bin):
@@ -125,27 +85,10 @@ class AlgoritimoGenetico():
         """
         
         # converte o número binário para o formato inteiro
-        f = num_bin.index('#')
-        numx=num_bin[:f]
-        numy =num_bin[f+1:]
 
-        const = 0.08
-
-        numx = int(''.join(numx), 2) 
-        numy = int(''.join(numy), 2) 
-
+        const = 0.58
         
-        numx = numx*(200/((2**self.total_bits)-1))
-        numy = numy*(200/((2**self.total_bits)-1))
-        
-
-        numx = numx+self.x_min
-        
-        numy = numy+self.y_min
-        # calcula e retorna o resultado da função objetivo
-        obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
-        
-        return obj-const
+        return max(self._funcao_objetivo(num_bin)-const,0.0001)
     
     
     def avaliar(self):
@@ -192,18 +135,18 @@ class AlgoritimoGenetico():
 
     def selecionar(self):
         """
-            Realiza a seleção do individuo mais apto por torneio, considerando N = 2
+            Realiza a seleção do individuo mais apto por roleta, considerando N = 2
         """
-        # agrupa os individuos com suas avaliações para gerar os participantes do torneio
-        participantes_torneio = list(self.fitness())
-        # escolhe dois individuos aleatoriamente
+        # agrupa os individuos com suas avaliações para gerar os participantes do roleta
+        participantes_roleta = list(self.fitness())
 
+        apt = [t[1] for t in participantes_roleta]
 
-        individuo_1 = participantes_torneio[randint(0, self.tam_populacao - 1)]
+        selected = choices(participantes_roleta, weights=apt, k=1)
 
-        individuo_2 = participantes_torneio[randint(0, self.tam_populacao - 1)]
-        # retorna individuo com a maior avaliação, ou seja, o vencedor do torneio
-        return individuo_1[0] if individuo_1[1] >= individuo_2[1] else individuo_2[0]
+        
+        
+        return selected[0][0]
     
     def _ajustar(self, individuo):
         """
@@ -377,12 +320,12 @@ def main():
     y = []
     # executa o algoritmo por "num_gerações"
 
-    expRes = [[0 for c in range(20)] for r in range(40)]
+    expRes = [[0 for c in range(5)] for r in range(40)]
     
-    for ex in range(20):
+    for ex in range(5):
         #Os valores booleanos se referem, em ordem a: Elitismo, Steady State e permitir duplicados no Steady State
         #Pode-se trocar o metodo de aptidao, os disponiveis são 'avaliacao','windowing' e 'normalizar'
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 22, 100, 0.008, 0.65, 40, True , 'avaliacao', True , False)
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 44, 100, 0.008, 0.65, 40, True , 'avaliacao', True , False)
 
         #algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
@@ -432,7 +375,7 @@ def main():
 
     axA.plot(expMeans, color='red')
 
-    axA.set(xlim=(0, 40), xticks=np.arange(0, 40),
+    axA.set(xlim=(0, algoritmo_genetico.num_geracoes), xticks=np.arange(0, algoritmo_genetico.num_geracoes),
        ylim=(0.9, 1))
     
     plt.savefig('Values.png', format='png')
@@ -441,7 +384,7 @@ def main():
 
     axB.stairs(expMeansNines, linewidth=2.5)
 
-    axB.set(xlim=(0, 40), xticks=np.arange(0, 40),
+    axB.set(xlim=(0, algoritmo_genetico.num_geracoes), xticks=np.arange(0, algoritmo_genetico.num_geracoes),
        ylim=(0, 4), yticks=np.arange(0, 4))
 
     plt.savefig('Noves.png', format='png')
