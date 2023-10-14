@@ -1,5 +1,5 @@
 from pickle import FALSE
-from random import randint, choices
+from random import randint, choices, seed
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,6 +76,10 @@ class AlgoritimoGenetico():
 
         # calcula e retorna o resultado da função objetivo
         obj = (0.5 - (math.sin(math.sqrt(numx**2+numy**2))**2-0.5/(1.0+0.0001*(numx**2+numy**2))**2))
+
+        '''
+        if obj >= 0.999:
+            print('X:',numx,'Y:',numy)'''
         
         return obj
     
@@ -85,10 +89,8 @@ class AlgoritimoGenetico():
         """
         
         # converte o número binário para o formato inteiro
-
-        const = 0.58
         
-        return max(self._funcao_objetivo(num_bin)-const,0.0001)
+        return max(self._funcao_objetivo(num_bin)-min(self.avaliacao),0)
     
     
     def avaliar(self):
@@ -317,15 +319,16 @@ def countNines(num):
 
 
 def main():
-    y = []
     # executa o algoritmo por "num_gerações"
 
-    expRes = [[0 for c in range(5)] for r in range(40)]
-    
-    for ex in range(5):
+    expRes = [[0 for c in range(20)] for r in range(40)]
+
+    seed(111)
+
+    for ex in range(20):
         #Os valores booleanos se referem, em ordem a: Elitismo, Steady State e permitir duplicados no Steady State
         #Pode-se trocar o metodo de aptidao, os disponiveis são 'avaliacao','windowing' e 'normalizar'
-        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 44, 100, 0.008, 0.65, 40, True , 'avaliacao', True , False)
+        algoritmo_genetico = AlgoritimoGenetico(-100, 100, -100, 100, 44, 100, 0.008, 0.65, 40, True , 'windowing', True , False)
 
         #algoritmo_genetico.avaliar()
         for i in range(algoritmo_genetico.num_geracoes):
